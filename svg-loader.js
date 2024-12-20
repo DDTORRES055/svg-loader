@@ -4,6 +4,7 @@ const { get, set, del, entries } = require("idb-keyval");
 const cssScope = require("./lib/scope-css");
 const cssUrlFixer = require("./lib/css-url-fixer");
 const counter = require("./lib/counter");
+const axios = require("axios");
 
 const isCacheAvailable = async (url) => {
     let item;
@@ -79,7 +80,6 @@ const renderBody = (elem, options, body) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(body, "text/html");
     const fragment = isSpriteIcon ? doc.getElementById(spriteIconId) : doc.querySelector("svg");
-
     const eventNames = getAllEventNames();
 
     // When svg-loader is loading in the same element, it's
@@ -246,12 +246,18 @@ const renderIcon = async (elem) => {
 
         requestsInProgress[src] = true;
 
-        fetch(src)
-            .then((response) => {
-                if (!response.ok) {
-                    throw Error(`Request for '${src}' returned ${response.status} (${response.statusText})`);
+        axios.get(src, {
+                method: "GET",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "image/svg+xml"
                 }
-                return response.text();
+            })
+            .then((response) => {
+                if (!response.status.toString().startsWith("2") || !response.data) {
+                    throw Error(`Resource '${src}' returned a ${response.status} status`);
+                }
+                return response.data;
             })
             .then((body) => {
                 const bodyLower = body.toLowerCase().trim();
